@@ -1,12 +1,10 @@
-
-
-% A noun phrase is a subjective followed by verb followed 
-% preposition followed by a noun...
-noun_phrase(L0, L4, Ind) :-
+% Parse a valid formatted sentence.
+parse_sentence(L0, L5, Ind) :-
     subject(L0, L1, Ind), 
     verb(L1, L2, Ind),
     prep(L2, L3, Ind),
-    nouns(L3, L4, Ind).
+    end(L3, L4, Ind),
+    nouns(L4, L5, Ind).
 
 subject(["I" | L], L, _).
 verb(["cook" | L], L, _).
@@ -24,20 +22,14 @@ nouns(["and" | L0], L2, Ind) :-
 
 nouns(L, L, _).
 
+end([], [], _) :- !, fail.
+end(L, L, _) :- !.
+
 noun([IngName | L], L, Ind) :- dish(Ind, Ing), name(Ing, IngName).
-
-
-
-
-
-
-
 
 % question(Question, QR, Ind) is true if Ind is  an answer to Question
 question(["What", "can" | L0], L1, Ind) :- 
-    noun_phrase(L0, L1, Ind).
-
-
+    parse_sentence(L0, L1, Ind).
 
 % ask(Q, A) gives answer A to question Q
 ask(Q, A) :- 
@@ -68,7 +60,7 @@ dish(apple_crisp, flour).
 
 % Orange Chicken 
 dish(orange_chicken, oranges).
-dish(orange_chicken, chickenbreast).
+dish(orange_chicken, chicken).
 
 % Banana Bread 
 dish(banana_bread, bananas).
@@ -91,25 +83,25 @@ dish(avocado_toast, cheese).
 dish(caesar_salad, lettuce).
 dish(caesar_salad, cheese).
 
-% Stuffed Chicken Breast 
-dish(stuffed_chicken_breast, chickenbreast).
-dish(stuffed_chicken_breast, cheese).
-dish(stuffed_chicken_breast, spinach).
+% Stuffed Chicken 
+dish(stuffed_chicken, chicken).
+dish(stuffed_chicken, cheese).
+dish(stuffed_chicken, spinach).
 
 % Veggie Soup 
 dish(veggie_soup, broccoli).
-dish(stuffed_chicken_breast, carrot).
-dish(stuffed_chicken_breast, tomatoes).
-dish(stuffed_chicken_breast, beans).
+dish(veggie_soup, carrot).
+dish(veggie_soup, tomatoes).
+dish(veggie_soup, beans).
 
-% Grilled Chicken Breast 
-dish(grilled_chicken_breast, chickenbreast).
+% Grilled Chicken 
+dish(grilled_chicken, chicken).
 
 % Mixed Stir Fry 
 dish(mixed_stir_fry, beef).
 dish(mixed_stir_fry, broccoli).
 dish(mixed_stir_fry, carrot).
-dish(mixed_stir_fry, chickenbreast).
+dish(mixed_stir_fry, chicken).
 
 % Chili 
 dish(chili, beans).
@@ -200,18 +192,16 @@ dish(tofu_spring_rolls, lettuce).
 dish(tofu_spring_rolls, carrot).
 
 % Fettucine Alfredo
-dish(fettucine_alfredo, pasta).
 dish(fettucine_alfredo, cheese).
 dish(fettucine_alfredo, milk).
 dish(fettucine_alfredo, pasta).
-
 
 % spicy(gongpaochiken).
 % sweet(gongpaochiken).
 % sour(gongpaochiken).
 % creamy(gongpaochiken).
 
-ingridient(Ing, _) :- foodgroup(Ing, _).
+ingredient(Ing, _) :- foodgroup(Ing, _).
 
 foodgroup(flour, grains).
 foodgroup(rice, grains).
@@ -227,12 +217,11 @@ foodgroup(avocado, fruits).
 
 foodgroup(lettuce, vegetables).
 foodgroup(spinach, vegetables).
-foodgroup(brocoli, vegetables).
+foodgroup(broccoli, vegetables).
 foodgroup(carrot, vegetables).
 foodgroup(tomatoes, vegetables).
 
-
-foodgroup(chickenbreast, protein).
+foodgroup(chicken, protein).
 foodgroup(beef, protein).
 foodgroup(beans, protein).
 foodgroup(salmon, protein).
@@ -256,11 +245,11 @@ name(avocado, "avocado").
 
 name(lettuce, "lettuce").
 name(spinach, "spinach").
-name(brocoli, "brocoli").
+name(broccoli, "broccoli").
 name(carrot, "carrot").
 name(tomatoes, "tomatoes").
 
-name(chickenbreast, "chicken breast").
+name(chicken, "chicken").
 name(beef, "beef").
 name(beans, "beans").
 name(salmon, "salmon").
@@ -271,8 +260,106 @@ name(cheese, "cheese").
 name(yogurt, "yogurt").
 
 
+
+parseOption("1", Selections) :-
+    pickIngredients(Selections).
+parseOption("2", Ans) :-
+    q(Ans).
+parseOption(_, _) :-
+    write('Invalid option.'),
+    nl.
+
+% Start here
+start(Ans) :-
+  write('Hello, trying to figure out what to cook?'),
+  write('\nSelect a mode'),
+  write('\n1. Pick Ingredients (Disjuctive)'),
+  write('\n2. Provide your ingredients with a sentence (Conjunctive)'),
+  nl,
+  read_line_to_string(user_input, St),
+  parseOption(St, Ans).
+
+
+% Logical workflow for the disjunctive mode
+pickIngredients(Selections) :-
+    grainsQ(GrainsA),
+    fruitsQ(FruitsA),
+    veggiesQ(VeggiesA),
+    proteinsQ(ProteinsA),
+    dairyQ(DairyA),
+    append([GrainsA, FruitsA, VeggiesA, ProteinsA, DairyA], Selections),
+    write(Selections),
+    maplist(findall(Dish, dish(Dish, Ingredient), Dishes), Selections, Dishes, []),
+    write(Dishes).
+    % TODO: This is not working yet!
+    
+grainsQ(GrainsA) :-
+    write('Which grains do you have?'),
+    write('\n1. flour'),
+    write('\n2. rice'),
+    write('\n3. oats'),
+    write('\n4. cornmeal'),
+    write('\n5. pasta'),
+    write('\nEnter the grains you have, separated by commas (ex. rice, oats.)'),
+    write('\nIf you have none, just press enter'),
+    write('\n:'),
+    read_line_to_string(user_input, Input),
+    split_string(Input, ",", " .?!", GrainsA).
+
+fruitsQ(FruitsA) :-
+    write('Which fruits do you have?'),
+    write('\n1. apples'),
+    write('\n2. oranges'),
+    write('\n3. bananas'),
+    write('\n4. berries'),
+    write('\n5. avocado'),
+    write('\nEnter the fruits, separated by commas (ex. apples, berries):'),
+    write('\nIf you have none, just press enter'),
+    write('\n:'),
+    read_line_to_string(user_input, Input),
+    split_string(Input, ",", " .?!", FruitsA).
+
+veggiesQ(VeggiesA) :-
+    write('Which veggies do you have?'),
+    write('\n1. lettuce'),
+    write('\n2. spinach'),
+    write('\n3. broccoli'),
+    write('\n4. carrot'),
+    write('\n5. tomatoes'),
+    write('\nEnter the veggies, separated by commas (ex. lettuce, carrot):'),
+    write('\nIf you have none, just press enter'),
+    write('\n:'),
+    read_line_to_string(user_input, Input),
+    split_string(Input, ",", " .?!", VeggiesA).
+
+proteinsQ(ProteinsA) :-
+    write('Which proteins do you have?'),
+    write('\n1. chicken'),
+    write('\n2. beef'),
+    write('\n3. beans'),
+    write('\n4. salmon'),
+    write('\n5. tofu'),
+    write('\nEnter the proteins, separated by commas (ex. beef, tofu):'),
+    write('\nIf you have none, just press enter'),
+    write('\n:'),
+    read_line_to_string(user_input, Input),
+    split_string(Input, ",", " .?!", ProteinsA).
+
+dairyQ(DairyA) :-
+    write('Which dairy products do you have?'),
+    write('\n1. milk'),
+    write('\n2. cheese'),
+    write('\n3. yogurt'),
+    write('\nEnter the dairy products, separated by commas (ex. milk, yogurt):'),
+    write('\nIf you have none, just press enter'),
+    write('\n:'),
+    read_line_to_string(user_input, Input),
+    split_string(Input, ",", " .?!", DairyA).
+
+% Logical workflow for the conjunctive mode
 q(Ans) :-
-    write("Ask me: "), flush_output(current_output), 
+    write("Ask me: "), 
+    flush_output(current_output), 
     read_line_to_string(user_input, St), 
     split_string(St, " -", " ,?.!-", Ln), % ignore punctuation
     ask(Ln, Ans).
@@ -280,7 +367,12 @@ q(Ans) :-
     write("No more answers\n"),
     q(Ans).
 
+
 % sample queries:
 % ?- ask(["What", "can", "I", "cook", "with", "flour", "and", "berries"], A).
 
-
+% Citations
+% geography.pl from lecture
+% https://www.swi-prolog.org/pldoc/man?predicate=maplist/4
+% https://www.swi-prolog.org/pldoc/man?predicate=findall/3
+% https://stackoverflow.com/questions/60571367/prolog-how-to-verify-user-input
