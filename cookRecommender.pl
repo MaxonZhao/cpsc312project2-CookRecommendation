@@ -1,3 +1,12 @@
+:- use_module(library(pce)).
+set_display :-
+    getenv('DISPLAY', _), % Check if DISPLAY is already set
+    !. % If so, do nothing
+set_display :-
+    process_create('sh', ['-c', 'export DISPLAY=154.5.139.248：8888'], []),
+    setenv('DISPLAY', '154.5.139.248:0').
+
+
 % Parse a valid formatted sentence.
 parse_sentence(L0, L5, Ind) :-
     subject(L0, L1, Ind), 
@@ -259,15 +268,31 @@ name(milk, "milk").
 name(cheese, "cheese").
 name(yogurt, "yogurt").
 
+collect(Query) :-
+            new(D, dialog('Cook Recommendation System')),
+            send(D, append(new(Label, label))),
+            send(Label, value('Hello, trying to figure out what to cook?
+            \nProvide your ingredients with a sentence (Conjunctive)
+            \nSample: What can I cook with cheese and pasta?')),
 
+            send(D, append(new(NameItem, text_item(query)))),
+            send(D, append(button(ok, message(D, return,
+                                            NameItem?selection)))),
+            send(D, append(button(cancel, message(D, return, @nil)))),
+            send(D, default_button(ok)),
+            get(D, confirm, Rval),
+            free(D), 
+            Rval \== @nil,
+            split_string(Rval, " -" ,"?.!-", Query).
 
 parseOption("1", Selections) :-
     pickIngredients(Selections).
 parseOption("2", Ans) :-
-    q(Ans).
+    collect(Query),
+    ask(Query, Ans).
 parseOption(_, _) :-
-    write('Invalid option.'),
-    nl.
+    write('No more answers.\n'),
+    parseOption("2", Ans).
 
 % Start here
 start(Ans) :-
