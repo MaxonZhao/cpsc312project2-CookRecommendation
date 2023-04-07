@@ -290,8 +290,8 @@ parseOption("1", Selections) :-
 parseOption("2", Ans) :-
     collect(Query),
     ask(Query, Ans).
-parseOption(_, _) :-
-    write('No more answers.\n'),
+parseOption(_, Ans) :-
+    write('No more Answers.\n'),
     parseOption("2", Ans).
 
 % Start here
